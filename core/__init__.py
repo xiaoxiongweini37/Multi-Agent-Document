@@ -1,8 +1,29 @@
 """
-Multi-Agent Document Processing System
+Multi-Agent Dev Assistant — Core 模块
 
-基于多 Agent 辩论机制的智能文档处理系统
+包含辩论引擎和决策者的核心实现。
 """
 
-__version__ = "0.1.0"
-__author__ = "xiaoxiongweini37"
+from .debate_engine import (
+    DebateEngine,
+    DebateMode,
+    AdversarialDebate,
+    JuryPanel,
+    DebateRound,
+    DebateResult
+)
+from .decision_maker import DecisionMaker, Decision
+
+__all__ = [
+    # 辩论引擎
+    "DebateEngine",
+    "DebateMode",
+    "AdversarialDebate",
+    "JuryPanel",
+    "DebateRound",
+    "DebateResult",
+    
+    # 决策者
+    "DecisionMaker",
+    "Decision",
+]
