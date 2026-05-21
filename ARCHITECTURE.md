@@ -1,22 +1,32 @@
 # 架构设计文档
 
-> Multi-Agent Document Processing System 技术架构
+> Multi-Agent Dev Assistant 技术架构
 
 ## 1. 系统架构概述
 
-### 1.1 分层架构
+### 1.1 核心定位
+
+**通用开发辅助系统**，不是特定业务系统。
+
+- ✅ 任何项目都能用
+- ✅ 任何技术栈都能用
+- ✅ 换公司也能带走
+- ❌ 不绑定 OCR
+- ❌ 不绑定特定业务
+
+### 1.2 分层架构
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    决策层（Decision Layer）                   │
-│  用户 / Hermes-Agent                                         │
+│  用户（你）                                                   │
 │  职责：审核辩论结果，评估预算/风险，批准执行                   │
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────┴──────────────────────────────────┐
 │                    编排层（Orchestration Layer）              │
 │  Orchestrator                                                │
-│  职责：调度辩论团队，管理六阶工作流，处理并发                 │
+│  职责：调度辩论团队，管理工作流，处理并发                     │
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────┴──────────────────────────────────┐
@@ -26,41 +36,31 @@
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────┴──────────────────────────────────┐
-│                    执行层（Execution Layer）                  │
-│  OCR 引擎 / 分类器 / 规则引擎                                │
-│  职责：具体执行任务，产出结果                                 │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-┌──────────────────────────┴──────────────────────────────────┐
 │                    约束层（Constraint Layer）                 │
 │  Harness Engine + AGENTS.md + SOUL.md                        │
 │  职责：硬约束拦截 + 项目规范 + 人格约束                      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 1.2 数据流
+### 1.3 数据流
 
 ```
-用户输入文档
+用户提出问题
     ↓
-文档预处理（格式转换、大小检查）
-    ↓
-Orchestrator 调度
+Orchestrator 解析意图
     ↓
 ┌─────────────────────────────────────────┐
 │           辩论流程                       │
 │                                          │
 │  方向辩论 → 方案辩论 → 投票/裁决         │
 │      ↓           ↓           ↓           │
-│  OCR专家    分类专家    规则专家          │
-│  成本专家   风险专家    性能专家          │
+│  技术专家  架构专家  成本专家            │
+│  风险专家  质量专家  性能专家            │
 └─────────────────────────────────────────┘
     ↓
-决策层审核（预算/风险/可行性）
+决策层审核（可行性/成本/风险）
     ↓
-执行层处理（OCR + 分类 + 规则验证）
-    ↓
-结果输出 + 决策日志
+输出：决策报告 + 理由 + 风险提示
 ```
 
 ---
@@ -100,7 +100,7 @@ class BaseAgent(ABC):
     
     @abstractmethod
     async def analyze(self, context: Dict[str, Any]) -> AgentResponse:
-        """分析任务"""
+        """分析问题"""
         pass
     
     @abstractmethod
@@ -138,16 +138,12 @@ class DebateTeam:
         pass
 
 # 6 个专业团队
-class OCRTeam(DebateTeam):
-    """OCR 技术团队"""
+class TechExpertTeam(DebateTeam):
+    """技术专家团队"""
     pass
 
-class ClassifierTeam(DebateTeam):
-    """文档分类团队"""
-    pass
-
-class RuleValidatorTeam(DebateTeam):
-    """规则验证团队"""
+class ArchitectTeam(DebateTeam):
+    """架构专家团队"""
     pass
 
 class CostAnalystTeam(DebateTeam):
@@ -156,6 +152,10 @@ class CostAnalystTeam(DebateTeam):
 
 class RiskAssessorTeam(DebateTeam):
     """风险评估团队"""
+    pass
+
+class QualityEngineerTeam(DebateTeam):
+    """质量工程团队"""
     pass
 
 class PerformanceTeam(DebateTeam):
@@ -288,77 +288,37 @@ class Orchestrator:
         # 任务2：方案辩论
         plan = await self.phase2_plan(task, direction)
         
-        # 任务3：具体执行
-        execution = await self.phase3_execute(task, plan)
+        # 任务3：具体建议
+        suggestion = await self.phase3_suggest(task, plan)
         
         # 任务4：改进
-        improvement = await self.phase4_improve(task, execution)
+        improvement = await self.phase4_improve(task, suggestion)
         
         # 任务5：全局评估
         evaluation = await self.phase5_evaluate(task, improvement)
         
-        # 任务6：最终改进
+        # 任务6：最终建议
         final = await self.phase6_finalize(task, evaluation)
         
         return final
-    
-    async def phase1_direction(self, task: Dict[str, Any]) -> 'DirectionResult':
-        """阶段1：方向辩论"""
-        pass
-    
-    async def phase2_plan(self, task: Dict[str, Any], direction: 'DirectionResult') -> 'PlanResult':
-        """阶段2：方案辩论"""
-        pass
-    
-    async def phase3_execute(self, task: Dict[str, Any], plan: 'PlanResult') -> 'ExecutionResult':
-        """阶段3：具体执行"""
-        pass
-    
-    async def phase4_improve(self, task: Dict[str, Any], execution: 'ExecutionResult') -> 'ImprovementResult':
-        """阶段4：改进"""
-        pass
-    
-    async def phase5_evaluate(self, task: Dict[str, Any], improvement: 'ImprovementResult') -> 'EvaluationResult':
-        """阶段5：全局评估"""
-        pass
-    
-    async def phase6_finalize(self, task: Dict[str, Any], evaluation: 'EvaluationResult') -> 'WorkflowResult':
-        """阶段6：最终改进"""
-        pass
 ```
 
 ---
 
 ## 3. 数据模型
 
-### 3.1 文档模型
+### 3.1 问题模型
 
 ```python
-class Document(BaseModel):
-    """文档模型"""
+class Question(BaseModel):
+    """问题模型"""
     id: str
-    filename: str
-    content: bytes
-    mime_type: str
-    pages: int
-    created_at: datetime
-    metadata: Dict[str, Any] = {}
-
-class DocumentType(BaseModel):
-    """文档类型"""
-    id: str
-    name: str
+    type: str  # tech_selection, plan_review, code_review, architecture, debugging
+    title: str
     description: str
-    keywords: List[str]
-    rules: List[str]
-
-class ClassificationResult(BaseModel):
-    """分类结果"""
-    document_id: str
-    document_type: str
-    confidence: float
-    features: Dict[str, Any]
-    timestamp: datetime
+    context: Dict[str, Any]
+    constraints: List[str]
+    created_at: datetime
 ```
 
 ### 3.2 辩论模型
@@ -367,6 +327,7 @@ class ClassificationResult(BaseModel):
 class DebateTopic(BaseModel):
     """辩论主题"""
     id: str
+    question_id: str
     title: str
     description: str
     context: Dict[str, Any]
@@ -391,13 +352,29 @@ class DebateResult(BaseModel):
     metadata: Dict[str, Any]
 ```
 
-### 3.3 决策日志
+### 3.3 决策模型
+
+```python
+class Decision(BaseModel):
+    """决策模型"""
+    id: str
+    question_id: str
+    debate_result: DebateResult
+    decision: str
+    reasoning: str
+    risks: List[str]
+    alternatives: List[str]
+    confidence: float
+    timestamp: datetime
+```
+
+### 3.4 决策日志
 
 ```python
 class DecisionLog(BaseModel):
     """决策日志"""
     id: str
-    task_id: str
+    question_id: str
     phase: str
     debate_result: DebateResult
     decision: str
@@ -414,14 +391,14 @@ class DecisionLog(BaseModel):
 ### 4.1 API 接口
 
 ```python
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
-app = FastAPI(title="Multi-Agent Document API")
+app = FastAPI(title="Multi-Agent Dev Assistant API")
 
-@app.post("/documents/upload")
-async def upload_document(file: UploadFile):
-    """上传文档"""
+@app.post("/questions/ask")
+async def ask_question(question: Question):
+    """提出问题"""
     pass
 
 @app.post("/debate/start")
@@ -435,21 +412,122 @@ async def get_debate_result(debate_id: str):
     pass
 
 @app.get("/decisions/logs")
-async def get_decision_logs(task_id: str = None):
+async def get_decision_logs(question_id: str = None):
     """获取决策日志"""
     pass
 
 @app.post("/workflow/execute")
-async def execute_workflow(task: Dict[str, Any]):
+async def execute_workflow(question: Question):
     """执行工作流"""
     pass
 ```
 
+### 4.2 CLI 接口
+
+```bash
+# 提出问题
+dev-assistant ask "这个项目用 MongoDB 还是 PostgreSQL？"
+
+# 开始辩论
+dev-assistant debate --topic "数据库选型" --mode adversarial_debate --teams tech,cost,risk
+
+# 获取结果
+dev-assistant result <debate_id>
+
+# 执行完整工作流
+dev-assistant workflow "帮我设计一个聊天系统"
+```
+
 ---
 
-## 5. 扩展性设计
+## 5. 应用场景
 
-### 5.1 插件机制
+### 5.1 技术选型
+
+```python
+question = Question(
+    type="tech_selection",
+    title="数据库选型",
+    description="这个项目用 MongoDB 还是 PostgreSQL？",
+    context={
+        "data_type": "文档型",
+        "query_pattern": "复杂查询",
+        "scale": "中等",
+    },
+    constraints=["成本 < $100/月", "必须支持 ACID"]
+)
+```
+
+### 5.2 方案评估
+
+```python
+question = Question(
+    type="plan_review",
+    title="实时聊天功能",
+    description="我想做一个实时聊天功能",
+    context={
+        "users": 1000,
+        "concurrent": 100,
+        "features": ["文字", "图片", "文件"],
+    },
+    constraints=["开发时间 < 2 周", "成本 < $5000"]
+)
+```
+
+### 5.3 代码审查
+
+```python
+question = Question(
+    type="code_review",
+    title="代码审查",
+    description="帮我审查这段代码",
+    context={
+        "code": "...",
+        "language": "python",
+        "purpose": "数据处理",
+    },
+    constraints=["符合 PEP 8", "测试覆盖 > 80%"]
+)
+```
+
+### 5.4 架构设计
+
+```python
+question = Question(
+    type="architecture",
+    title="系统架构设计",
+    description="这个系统怎么设计？",
+    context={
+        "requirements": ["高并发", "可扩展", "低成本"],
+        "team_size": 3,
+        "timeline": "3 个月",
+    },
+    constraints=["使用 Python", "部署在 AWS"]
+)
+```
+
+### 5.5 问题排查
+
+```python
+question = Question(
+    type="debugging",
+    title="接口响应慢",
+    description="这个接口响应很慢，怎么优化？",
+    context={
+        "api": "/api/users",
+        "response_time": "5 秒",
+        "target": "< 1 秒",
+        "database": "PostgreSQL",
+    },
+    constraints=["不能停机", "不能改数据库结构"]
+)
+```
+
+---
+
+## 6. 扩展性设计
+
+### 6.1 插件机制
 
 ```python
 class PluginManager:
@@ -483,14 +561,14 @@ class Plugin(ABC):
         pass
 ```
 
-### 5.2 自定义辩论团队
+### 6.2 自定义辩论团队
 
 ```python
 # 用户可以自定义辩论团队
 custom_team = DebateTeam(
     team_id="custom_team",
     agents=[
-        CustomAgent("agent1", "技术专家"),
+        CustomAgent("agent1", "领域专家"),
         CustomAgent("agent2", "业务专家"),
     ]
 )
@@ -498,7 +576,7 @@ custom_team = DebateTeam(
 debate_engine.register_team(custom_team)
 ```
 
-### 5.3 自定义辩论模式
+### 6.3 自定义辩论模式
 
 ```python
 # 用户可以自定义辩论模式
@@ -510,86 +588,73 @@ class CustomDebateMode(DebateMode):
 debate_engine.register_mode(CustomDebateMode())
 ```
 
+### 6.4 自定义应用场景
+
+```python
+# 用户可以自定义应用场景
+class CustomScenario:
+    """自定义场景"""
+    
+    def __init__(self, name: str, teams: List[str], mode: str):
+        self.name = name
+        self.teams = teams
+        self.mode = mode
+    
+    async def execute(self, question: Question) -> Decision:
+        # 自定义执行逻辑
+        pass
+```
+
 ---
 
-## 6. 部署架构
+## 7. 部署架构
 
-### 6.1 单机部署
+### 7.1 本地部署（推荐）
 
 ```
 ┌─────────────────────────────────────────┐
-│              应用服务器                   │
+│              本地环境                     │
 │                                          │
 │  ┌─────────┐  ┌─────────┐  ┌─────────┐ │
-│  │ FastAPI  │  │ 辩论引擎 │  │ 工作流   │ │
-│  │ 接口     │  │         │  │ 编排器   │ │
-│  └─────────┘  └─────────┘  └─────────┘ │
-│                                          │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐ │
-│  │ OCR引擎  │  │ 分类器  │  │ 规则引擎 │ │
+│  │ CLI工具  │  │ API服务  │  │ 辩论引擎 │ │
 │  └─────────┘  └─────────┘  └─────────┘ │
 │                                          │
 │  ┌─────────┐                             │
-│  │  MySQL  │                             │
+│  │  SQLite │                             │
 │  └─────────┘                             │
 └─────────────────────────────────────────┘
 ```
 
-### 6.2 分布式部署
+### 7.2 服务器部署
 
 ```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  应用服务器1  │     │  应用服务器2  │     │  应用服务器3  │
-│  (FastAPI)   │     │  (辩论引擎)  │     │  (工作流)    │
-└──────────────┘     └──────────────┘     └──────────────┘
-        │                    │                    │
-        └────────────────────┼────────────────────┘
-                             │
-                      ┌──────────────┐
-                      │   MySQL     │
-                      │   集群      │
-                      └──────────────┘
+┌──────────────┐     ┌──────────────┐
+│  应用服务器   │     │   数据库     │
+│  (FastAPI)   │     │   (MySQL)    │
+└──────────────┘     └──────────────┘
 ```
 
 ---
 
-## 7. 性能优化
+## 8. 性能优化
 
-### 7.1 辩论并行化
+### 8.1 辩论并行化
 
 - 同一轮辩论中，多个团队可以并行执行
 - 使用 asyncio 实现并发
 - 限制最大并发数，避免资源耗尽
 
-### 7.2 上下文管理
+### 8.2 上下文管理
 
 - 每个辩论团队独立的上下文空间
 - 避免上下文污染
 - 定期清理过期上下文
 
-### 7.3 缓存机制
+### 8.3 缓存机制
 
 - 缓存常见辩论结果
-- 缓存 OCR 识别结果
-- 缓存分类结果
-
----
-
-## 8. 监控与日志
-
-### 8.1 监控指标
-
-- 辩论轮数
-- 辩论时长
-- Token 消耗
-- 决策准确率
-- 系统资源使用
-
-### 8.2 日志系统
-
-- 结构化日志
-- 分级日志（DEBUG/INFO/WARNING/ERROR）
-- 日志聚合与分析
+- 缓存技术选型结论
+- 缓存代码审查结果
 
 ---
 
@@ -597,9 +662,9 @@ debate_engine.register_mode(CustomDebateMode())
 
 ### 9.1 数据安全
 
-- 文档加密存储
-- 传输加密（HTTPS）
-- 访问控制（RBAC）
+- 决策日志本地存储
+- 不上传敏感代码
+- 可配置数据保留策略
 
 ### 9.2 操作安全
 
@@ -613,15 +678,15 @@ debate_engine.register_mode(CustomDebateMode())
 
 ### 10.1 功能扩展
 
-- 支持更多文档类型
+- 支持更多应用场景
 - 支持多语言
-- 支持实时协作
+- 支持团队协作
 
 ### 10.2 性能扩展
 
 - 分布式辩论引擎
-- GPU 加速 OCR
-- 流式处理大文档
+- GPU 加速推理
+- 流式处理大问题
 
 ### 10.3 生态扩展
 

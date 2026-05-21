@@ -5,10 +5,20 @@
 
 ## 项目信息
 
-- **项目名称**：Multi-Agent Document Processing System
-- **项目类型**：AI 文档处理系统
-- **技术栈**：Python 3.10+, LangGraph, PaddleOCR-VL, Qwen2.5-VL
-- **目标用户**：香港公司文档处理
+- **项目名称**：Multi-Agent Dev Assistant
+- **项目类型**：通用开发辅助系统
+- **技术栈**：Python 3.10+, LangGraph, LangChain, FastAPI
+- **目标用户**：开发者
+
+## 核心定位
+
+**通用开发辅助系统**，不是特定业务系统。
+
+- ✅ 任何项目都能用
+- ✅ 任何技术栈都能用
+- ✅ 换公司也能带走
+- ❌ 不绑定特定业务
+- ❌ 不绑定特定技术栈
 
 ## 编码规范
 
@@ -42,41 +52,43 @@
 
 ```python
 # 好的命名
-class DocumentProcessor:
-    def process_document(self, doc: Document) -> ProcessedDocument:
+class DebateEngine:
+    async def run_debate(self, topic: str) -> DebateResult:
         pass
 
 # 不好的命名
-class DocProc:
-    def proc(self, d):
+class DE:
+    async def run(self, t):
         pass
 ```
 
 ## 技术偏好
 
-### OCR 引擎
+### Agent 编排
 
-- **首选**：PaddleOCR-VL（中文识别准确率高）
-- **备选**：MinerU（本地部署，无 API 费用）
-- **策略**：PaddleOCR-VL 优先，失败时 fallback 到 MinerU
+- **框架**：LangGraph
+- **理由**：专为 Agent 设计，支持复杂工作流，图结构匹配辩论流程
 
-### LLM 模型
+### Agent 框架
 
-- **决策层**：强推理模型（GPT-4, Claude 等）
-- **执行层**：便宜模型（MiniMax, Qwen 等）
-- **原则**：辩论在便宜模型跑，决策者只拍板
-
-### 数据库
-
-- **主数据库**：MySQL（决策日志）
-- **缓存**：Redis（辩论结果缓存）
-- **ORM**：SQLAlchemy
+- **框架**：LangChain
+- **理由**：生态完善，工具链丰富，社区活跃
 
 ### API 框架
 
 - **框架**：FastAPI
-- **文档**：Swagger UI 自动生成
-- **版本控制**：URL 路径版本（/api/v1/...）
+- **理由**：高性能，自动文档生成，类型安全
+
+### 数据验证
+
+- **框架**：Pydantic
+- **理由**：类型安全，序列化方便，与 FastAPI 集成好
+
+### 数据库
+
+- **开发环境**：SQLite（简单，无需配置）
+- **生产环境**：MySQL（稳定，功能丰富）
+- **ORM**：SQLAlchemy
 
 ## 协作约定
 
@@ -89,7 +101,7 @@ class DocProc:
 
 ### 代码审查
 
-1. **审查者**：决策者（用户/Hermes）
+1. **审查者**：决策者（用户）
 2. **审查标准**：符合本规范
 3. **审查流程**：提交 → 审查 → 修改 → 合并
 
@@ -107,8 +119,8 @@ class DocProc:
 
 ```bash
 # 示例
-git commit -m "feat(ocr): add PaddleOCR-VL integration"
-git commit -m "fix(debate): fix consensus algorithm bug"
+git commit -m "feat(debate): add adversarial debate mode"
+git commit -m "fix(agent): fix consensus algorithm bug"
 git commit -m "docs(readme): update installation guide"
 ```
 
@@ -123,26 +135,26 @@ git commit -m "docs(readme): update installation guide"
 ```python
 # 好的异常处理
 try:
-    result = ocr_engine.process(image)
-except OCRTimeoutError:
-    logger.warning("OCR timeout, falling back to MinerU")
-    result = mineru_engine.process(image)
-except OCRError as e:
-    logger.error(f"OCR failed: {e}")
+    result = await debate_engine.run_debate(topic)
+except DebateTimeoutError:
+    logger.warning("Debate timeout, using default decision")
+    result = default_decision
+except DebateError as e:
+    logger.error(f"Debate failed: {e}")
     raise
 
 # 不好的异常处理
 try:
-    result = ocr_engine.process(image)
+    result = await debate_engine.run_debate(topic)
 except:
     pass
 ```
 
 ### 降级策略
 
-1. **OCR 引擎降级**：PaddleOCR-VL → MinerU
-2. **辩论降级**：多团队辩论 → 单团队分析
-3. **决策降级**：自动决策 → 人工审核
+1. **辩论降级**：多团队辩论 → 单团队分析
+2. **决策降级**：自动决策 → 人工审核
+3. **超时降级**：长时间辩论 → 快速决策
 
 ## 测试规范
 
@@ -162,14 +174,14 @@ except:
 
 ```python
 # 好的命名
-def test_document_upload_success():
+def test_debate_engine_returns_result():
     pass
 
-def test_document_upload_invalid_format():
+def test_debate_engine_handles_timeout():
     pass
 
 # 不好的命名
-def test_upload():
+def test_debate():
     pass
 ```
 
@@ -177,24 +189,23 @@ def test_upload():
 
 ### 响应时间
 
-- **文档上传**：< 1 秒
-- **OCR 识别**：< 10 秒（单页）
-- **辩论流程**：< 5 分钟（单轮）
-- **工作流执行**：< 1 小时（完整流程）
+- **问题解析**：< 1 秒
+- **单轮辩论**：< 30 秒
+- **完整工作流**：< 5 分钟
 
 ### 并发处理
 
 - **最大并发数**：10
-- **队列机制**：Celery + Redis
-- **超时设置**：30 秒（API），5 分钟（任务）
+- **队列机制**：asyncio
+- **超时设置**：30 秒（单轮），5 分钟（完整流程）
 
 ## 安全要求
 
 ### 数据安全
 
-- **存储加密**：AES-256
-- **传输加密**：HTTPS
-- **访问控制**：RBAC
+- **本地存储**：决策日志本地存储
+- **不上传代码**：敏感代码不上传
+- **数据保留**：可配置保留策略
 
 ### 操作安全
 
@@ -222,3 +233,4 @@ def test_upload():
 | 日期 | 版本 | 变更 |
 |------|------|------|
 | 2026-05-21 | 1.0.0 | 初始版本 |
+| 2026-05-21 | 1.0.1 | 修正定位为通用开发辅助系统 |
