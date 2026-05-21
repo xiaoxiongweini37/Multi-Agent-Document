@@ -24,9 +24,27 @@ async def demo_tech_selection():
     # 创建辩论引擎
     engine = DebateEngine()
     
-    # 注册团队
-    tech_team = create_tech_team()
+    # 注册团队（创建两个视角的团队）
+    from agents.teams import DebateTeam, TechExpert, Architect, CostAnalyst, RiskAssessor
+    
+    # 技术团队：关注技术实现
+    tech_team = DebateTeam(
+        team_id="tech_team",
+        name="技术实现团队",
+        description="关注技术实现和可行性",
+        agents=[TechExpert(), Architect()]
+    )
+    
+    # 业务团队：关注成本和风险
+    business_team = DebateTeam(
+        team_id="business_team",
+        name="业务评估团队",
+        description="关注成本和风险",
+        agents=[CostAnalyst(), RiskAssessor()]
+    )
+    
     engine.register_team(tech_team)
+    engine.register_team(business_team)
     
     # 创建辩论上下文
     context = DebateContext(
@@ -46,7 +64,7 @@ async def demo_tech_selection():
     result = await engine.run_debate(
         context=context,
         mode_id="adversarial_debate",
-        team_ids=["tech_team"],
+        team_ids=["tech_team", "business_team"],
         max_rounds=2
     )
     
@@ -136,9 +154,27 @@ async def demo_architecture():
     # 创建辩论引擎
     engine = DebateEngine()
     
-    # 注册团队
-    full_team = create_full_team()
-    engine.register_team(full_team)
+    # 注册团队（创建两个视角的团队）
+    from agents.teams import DebateTeam, TechExpert, Architect, CostAnalyst, RiskAssessor, QualityEngineer, PerformanceEngineer
+    
+    # 技术团队：关注技术实现和架构
+    tech_team = DebateTeam(
+        team_id="arch_tech_team",
+        name="技术架构团队",
+        description="关注技术实现和架构设计",
+        agents=[TechExpert(), Architect(), PerformanceEngineer()]
+    )
+    
+    # 业务团队：关注成本、风险和质量
+    business_team = DebateTeam(
+        team_id="arch_business_team",
+        name="业务评估团队",
+        description="关注成本、风险和质量",
+        agents=[CostAnalyst(), RiskAssessor(), QualityEngineer()]
+    )
+    
+    engine.register_team(tech_team)
+    engine.register_team(business_team)
     
     # 创建辩论上下文
     context = DebateContext(
@@ -158,7 +194,7 @@ async def demo_architecture():
     result = await engine.run_debate(
         context=context,
         mode_id="adversarial_debate",
-        team_ids=["full_team"],
+        team_ids=["arch_tech_team", "arch_business_team"],
         max_rounds=2
     )
     
